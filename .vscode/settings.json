@@ -6,8 +6,10 @@
     },
     "circuitpython.board.version": null,
     "circuitpython.board.vid": "0x239A",
-    "circuitpython.board.pid": "0x8038",
+    "circuitpython.board.pid": "0x80F4",
     "python.analysis.extraPaths": [
-        "./lib"
+        "/Users/rivques/.vscode-insiders/extensions/joedevivo.vscode-circuitpython-0.1.20-darwin-x64/boards/0x239A/0x80F4",
+        "/Users/rivques/.vscode-insiders/extensions/joedevivo.vscode-circuitpython-0.1.20-darwin-x64/stubs",
+        "/Users/rivques/Library/Application Support/Code - Insiders/User/globalStorage/joedevivo.vscode-circuitpython/bundle/20230926/adafruit-circuitpython-bundle-py-20230926/lib"
     ]
 }
