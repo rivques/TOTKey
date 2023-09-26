@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Upload code to board",
+            "type": "f5anything",
+            "request": "launch",
+            "command": "Copy-Item -Path \"${file}\" -Destination \"D:\\code.py\";robocopy ${workspaceFolder}\\lib D:\\lib * /xf .* /xd .* /mir /xo /im",
+            "showTerminal": false,
+            "terminalName": "Code Uploader"
+        }
+    ]
+}
