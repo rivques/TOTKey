@@ -70,12 +70,12 @@ class TOTKey:
     
     async def handle_command(self, command):
         if command["command"] == "INIT_COMMS":
-            self.comms.send_command("COMMS_START_ACK", {"current_time": self.pins.rtc.get_datetime()._mktime()})
+            self.comms.send_command("COMMS_START_ACK", {"current_time": self.pins.rtc.get_unixtime()})
         elif command["command"] == "SET_TIME":
             self.pins.rtc.set_datetime(adafruit_datetime.datetime.fromtimestamp(command["args"]["current_time"]))
-            self.comms.send_command("TIME_SET_ACK", {"current_time": self.pins.rtc.get_datetime()._mktime()})
+            self.comms.send_command("TIME_SET_ACK", {"current_time": self.pins.rtc.get_unixtime()})
         elif command["command"] == "GET_TIME":
-            self.comms.send_command("TIME_GET_RES", {"current_time": self.pins.rtc.get_datetime()._mktime()})
+            self.comms.send_command("TIME_GET_RES", {"current_time": self.pins.rtc.get_unixtime()})
         elif command["command"] == "BLINK_LED":
             self.comms.send_command("BLINK_ACK", {})
             self.pins.led2.value = not self.pins.led2.value

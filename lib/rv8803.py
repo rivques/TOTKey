@@ -15,15 +15,14 @@ class RV8803:
         self.i2c.unlock()
 
         self.i2c_device = i2c_device.I2CDevice(self.i2c, self.device_address)
-
-    def get_datetime(self):
-        # IN UTC!! (no timezone or DST support)
+    
+    def get_unixtime(self):
         date = self.date
-        return adafruit_datetime.datetime(date.tm_year, date.tm_mon, date.tm_mday+1, date.tm_hour, date.tm_min, date.tm_sec)
+        return time.mktime(date)
     
     def set_datetime(self, date: adafruit_datetime.datetime):
         # IN UTC!! (no timezone or DST support)
-        self.date = time.struct_time([date.year, date.month, date.day-1, date.hour, date.minute, date.second, date.weekday(), -1, -1])
+        self.date = time.struct_time([date.year, date.month, date.day, date.hour, date.minute, date.second, date.weekday(), -1, -1])
         
 
 if __name__ == "__main__":
