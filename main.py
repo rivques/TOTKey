@@ -3,6 +3,7 @@ import asyncio
 from lib.computer_comms import ComputerComms
 import time
 import adafruit_datetime
+import lib.totpmanager
 
 class InputEvent:
     def __init__(self, button, action):
@@ -18,6 +19,7 @@ class TOTKey:
         self.input_events = []
         self.button_states = [True, True, True]
         self.comp_commands = []
+        self.totp_manager = lib.totpmanager.TOTPManager(comms)
 
         asyncio.run(self.do_tasks())
 
@@ -81,8 +83,15 @@ class TOTKey:
             self.pins.led2.value = not self.pins.led2.value
             await asyncio.sleep(0.5)
             self.pins.led2.value = not self.pins.led2.value
+        elif command["command"] == "ADD_KEY":
+            self.totp_manager.add_key(command["args"]["service_name"], command["args"]["secret"], command["args"]["digits"])
+            self.comms.send_command("KEY_ADD_ACK", {})
+        elif command["command"] == "REMOVE_KEY":
+            self.totp_manager.remove_key(command["args"]["service_name"])
+            self.comms.send_command("KEY_REMOVE_ACK", {})
+        elif command["command"] == "LIST_KEYS":
+            self.comms.send_command("KEY_LIST_RESPONSE", {"keys": self.totp_manager.keys.keys()})
         elif command["command"] == "HALT":
-            self.comms.send_command("HALT_ACK", {})
             self.running = False
         else:
             self.comms.log(f"Unknown command: {command}", "WARNING")

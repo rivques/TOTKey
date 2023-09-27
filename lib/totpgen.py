@@ -1,5 +1,6 @@
 import adafruit_hashlib
 import adafruit_binascii
+import hmac
 
 SHA1 = adafruit_hashlib.sha1()
 TEST = __name__ == "__main__"
@@ -13,13 +14,7 @@ if TEST:
 # should be a94a8fe5ccb19ba61c4c0873d391e987982fbbd3
 
 def HMAC(k, m):
-    SHA1_BLOCK_SIZE = 64
-    KEY_BLOCK = k + (b'\0' * (SHA1_BLOCK_SIZE - len(k)))
-    KEY_INNER = bytes((x ^ 0x36) for x in KEY_BLOCK)
-    KEY_OUTER = bytes((x ^ 0x5C) for x in KEY_BLOCK)
-    inner_message = KEY_INNER + m
-    outer_message = KEY_OUTER + gen_sha1(inner_message)
-    return gen_sha1(outer_message)
+    return hmac.HMAC(k, m, digestmod="sha1").digest()
 
 
 if TEST:

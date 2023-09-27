@@ -7,7 +7,8 @@ class TOTPManager:
     def __init__(self, comms:lib.computer_comms.ComputerComms, filepath=None):
         self.comms = comms
         self.filepath = filepath
-        self.load_keys()
+        if self.filepath is not None:
+            self.load_keys()
     
     def load_keys(self):
         filetext = ""
@@ -22,19 +23,19 @@ class TOTPManager:
         except OSError:
             self.comms.log("Filesystem not writeable!", "ERROR")
     
-    def add_key(self, serviceName, secret, digits=6):
-        if serviceName in self.keys.keys():
+    def add_key(self, service_name, secret, digits=6):
+        if service_name in self.keys.keys():
             raise ValueError("Service already added!")
-        self.keys[serviceName] = {"secret": secret, "digits": digits}
+        self.keys[service_name] = {"secret": secret, "digits": digits}
     
-    def remove_key(self, serviceName):
-        if serviceName not in self.keys.keys():
+    def remove_key(self, service_name):
+        if service_name not in self.keys.keys():
             raise ValueError("Service does not exist")
-        self.keys.pop(serviceName)
+        self.keys.pop(service_name)
     
     def gen_keys(self, time):
         result = {}
-        for serviceName in self.keys:
-            service = self.keys[serviceName]
-            result[serviceName] = totpgen.generate_otp(time // 30, service["secret"], service["digits"])
+        for service_name in self.keys:
+            service = self.keys[service_name]
+            result[service_name] = totpgen.generate_otp(time // 30, service["secret"], service["digits"])
         return result
