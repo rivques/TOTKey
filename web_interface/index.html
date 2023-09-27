@@ -5,17 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TOTKey Interface</title>
     <script src="index.js" defer></script>
+    <style>
+    </style>
 </head>
 <body>
     <div class="connection-options">
         <button id="connect">Connect</button>
         <button id="disconnect">Disconnect</button>
     </div>
+    <h2>Time</h2>
     <div class="time-info">
         <p>Computer time: <span  id="computer-time"></span>
         <br>Key time: <span id="key-time"></span>
         <br>Difference: <span id="time-difference"></span></p>
         <button id="sync-time">Sync</button>
     </div>
+    <h2>Battery</h2>
+    <div class="battery-info">
+        <p>Battery voltage: <span id="battery-voltage"></span></p>
+    </div>
+    <h2>Keys</h2>
+    <div id="key-list">
+    </div>
+    <dialog id="remove-confirm-dialog">
+        <form>
+            <label>Are you sure you want to remove <span id="remove-confirm-key"></span>?</label>
+            <button id="remove-cancel">Cancel</button>
+            <button id="remove-confirm">Remove</button>
+        </form>
+    </dialog>
+    <button id="add-key-start">Add key</button>
+    <dialog id="add-key-modal">
+        <form>
+            <label>Service name:</label>
+            <input type="text" id="add-key-service-name">
+            <label>Secret:</label>
+            <input type="text" id="add-key-secret">
+            <button id="add-key-cancel">Cancel</button>
+            <button id="add-key-confirm">Add</button>
+        </form>
+    </dialog>
 </body>
 </html>

@@ -12,7 +12,7 @@ class TOTKeyPins:
     led2 = digitalio.DigitalInOut(board.GP20)
     led2.direction = digitalio.Direction.OUTPUT
 
-    bat_sense = analogio.AnalogIn(board.GP27_A1)
+    battery_sense = analogio.AnalogIn(board.GP27_A1)
 
     upButton = digitalio.DigitalInOut(board.GP18)
     upButton.direction = digitalio.Direction.INPUT
@@ -31,3 +31,6 @@ class TOTKeyPins:
     # oled = adafruit_displayio_ssd1306.SSD1306(display_bus, width=128, height=32)
 
     rtc = rv8803.RV8803(i2c)
+
+    def get_voltage(self):
+        return self.battery_sense.value * 3.3 / 65536

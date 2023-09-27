@@ -19,9 +19,15 @@ document.getElementById("connect").onclick = async function() {
     let decoder = new TextDecoderStream();
     let inputStream = connectedPort.readable.pipeThrough(decoder);
     reader = inputStream.getReader();
+    await setUpTOTKey();
+    await readLoop(reader);
+}
+
+async function setUpTOTKey() {
     await sendCommand(connectedPort, "INIT_COMMS");
     await sendCommand(connectedPort, "BLINK_LED");
-    await readLoop(reader);
+    await sendCommand(connectedPort, "GET_VOLTAGE");
+    await sendCommand(connectedPort, "LIST_KEYS");
 }
 
 async function readLoop(reader) {
@@ -58,32 +64,12 @@ async function readLoop(reader) {
                 await handleCommand(data);
             } catch (e){
                 console.log(`Error parsing JSON: ${currentLine}`)
+                throw e
             }
             currentLine = "";
         }
 
     }
-    // reader.read().then(({ value, done }) => {
-    //     if (done) {
-    //         console.log("DONE");
-    //         return;
-    //     }
-    //     if (wantToClose) {
-    //         console.log("Closing");
-    //         connectedPort.close();
-    //         return;
-    //     }
-    //     try {
-    //         const data = JSON.parse(value);
-    //         console.log(data);
-    //     } catch (e){
-    //         console.log(`Error parsing JSON: ${value}`)
-    //         //console.error(e.message);
-    //     }
-    //     //console.log(value);
-        
-    //     readLoop(reader);
-    // });
 }
 
 navigator.serial.addEventListener("disconnect", (e) => {
@@ -93,7 +79,7 @@ navigator.serial.addEventListener("disconnect", (e) => {
 });
 
 document.getElementById("disconnect").onclick = async function() {
-    
+    // TODO
 }
 
 /**
@@ -125,9 +111,98 @@ async function handleCommand(command){
             break;
         case "BLINK_ACK":
             break;
+        case "VOLTAGE_GET_RESPONSE":
+            document.getElementById("battery-voltage").textContent = `${command.args.voltage}V`;
+            break;
+        case "KEY_LIST_RESPONSE":
+            // each key should be in a row with a Remove button
+            // that remove button should call removeKey with the key id
+            const keyList = document.getElementById("key-list");
+            keyList.innerHTML = "";
+            for (const service_name of command.args.keys) {
+                const row = document.createElement("div");
+                const keyId = document.createElement("span");
+                keyId.textContent = service_name;
+                const removeButton = document.createElement("button");
+                removeButton.textContent = "Remove";
+                removeButton.onclick = () => {
+                    removeKey(service_name);
+                }
+                row.appendChild(keyId);
+                row.appendChild(removeButton);
+                // put the key ID on the left and the remove button on the right using flexbox
+                row.style.display = "flex";
+                row.style.justifyContent = "space-between";
+                keyList.appendChild(row);
+            }
+            break;
+        case "KEY_REMOVE_ACK":
+            await sendCommand(connectedPort, "LIST_KEYS");
+            break;
+        case "KEY_ADD_ACK":
+            await sendCommand(connectedPort, "LIST_KEYS");
+            break;
+        case "LOG":
+            switch (command.args.level) {
+                case "DEBUG":
+                    console.debug("board: " + command.args.msg);
+                    break;
+                case "INFO":
+                    console.info("board: " + command.args.msg);
+                    break;
+                case "WARNING":
+                    console.warn("board: " + command.args.msg);
+                    break;
+                case "ERROR":
+                    console.error("board: " + command.args.msg);
+            }
+            break;
         default:
             console.log("Unknown command: " + command.command);
     }
+}
+
+function removeKey(service_name) {
+    // confirm with modal
+    document.getElementById("remove-confirm-key").textContent = service_name;
+    document.getElementById("remove-confirm-dialog").showModal();
+}
+
+document.getElementById("remove-confirm").onclick = async function(e) {
+    e.preventDefault();
+    document.getElementById("remove-confirm-dialog").close();
+    const service_name = document.getElementById("remove-confirm-key").textContent;
+    await sendCommand(connectedPort, "REMOVE_KEY", { service_name });
+}
+
+document.getElementById("remove-cancel").onclick = async function(e) {
+    e.preventDefault();
+    document.getElementById("remove-confirm-dialog").close();
+}
+
+document.getElementById("add-key-start").onclick = async function() {
+    // use a modal
+    document.getElementById("add-key-modal").showModal();
+}
+
+document.getElementById("add-key-cancel").onclick = async function(e) {
+    e.preventDefault();
+    document.getElementById("add-key-modal").close();
+}
+
+document.getElementById("add-key-confirm").onclick = async function(e) {
+    e.preventDefault();
+    const service_name = document.getElementById("add-key-service-name").value;
+    const secret = document.getElementById("add-key-secret").value;
+    document.getElementById("add-key-modal").close();
+    // make sure there are no snake emojis in the key or service name (edge case)
+    if (service_name.includes("🐍") || secret.includes("🐍")) {
+        alert("Invalid key or service name (no sneks allowed, sorry)");
+        return;
+    }
+    document.getElementById("add-key-service-name").value = "";
+    document.getElementById("add-key-secret").value = "";
+    await sendCommand(connectedPort, "ADD_KEY", { service_name, secret, "digits": 6 });
 }
 
 function calculateTimeOffset(timestamp){

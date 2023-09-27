@@ -90,7 +90,9 @@ class TOTKey:
             self.totp_manager.remove_key(command["args"]["service_name"])
             self.comms.send_command("KEY_REMOVE_ACK", {})
         elif command["command"] == "LIST_KEYS":
-            self.comms.send_command("KEY_LIST_RESPONSE", {"keys": self.totp_manager.keys.keys()})
+            self.comms.send_command("KEY_LIST_RESPONSE", {"keys": list(self.totp_manager.keys.keys())})
+        elif command["command"] == "GET_VOLTAGE":
+            self.comms.send_command("VOLTAGE_GET_RESPONSE", {"voltage": str(self.pins.get_voltage())})
         elif command["command"] == "HALT":
             self.running = False
         else:
