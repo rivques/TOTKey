@@ -6,6 +6,11 @@ import displayio
 import adafruit_displayio_ssd1306
 import lib.rv8803 as rv8803
 
+class InputEvent:
+    def __init__(self, buttons, isLongPress):
+        self.buttons = buttons
+        self.isLongPress = isLongPress
+
 class ButtonEvent:
     def __init__(self, button, action):
         self.button = button
