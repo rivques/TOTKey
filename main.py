@@ -1,4 +1,4 @@
-from lib.pins import TOTKeyPins, ButtonEvent
+from lib.pins import InputEvent, TOTKeyPins, ButtonPress
 import asyncio
 from lib.computer_comms import ComputerComms
 import time
@@ -7,14 +7,16 @@ import lib.totpmanager
 import displayio
 from adafruit_display_text import label
 import terminalio
+import lib.displaymenu
 
 class TOTKey:
     def __init__(self, pins, comms):
         self.pins: TOTKeyPins = pins
         self.comms: ComputerComms = comms
         self.running = True
-        self.input_events = []
+        self.button_presses = []
         self.button_states = [True, True, True]
+        self.inputs = []
         self.comp_commands = []
         self.totp_manager = lib.totpmanager.TOTPManager(comms)
 
@@ -30,18 +32,38 @@ class TOTKey:
         
     async def wait_for_finish(self):
         await asyncio.gather(self.input_task, self.usb_task, self.display_task)
+    
+    def input_from_button_press(self, button, LONG_THRESHOLD=0.5):
+        for event in self.button_presses:
+            if event.button == button:
+                self.inputs.append(InputEvent({button}, time.monotonic() - event.time > LONG_THRESHOLD))
+                self.button_presses.remove(event)
+                break
+        else:
+            # no corresponding button press
+            self.comms.log(f"Button {button} released with no corresponding press!", "ERROR")
 
     async def process_inputs(self):
         while self.running:
             if self.button_states[0] != self.pins.upButton.value:
                 self.button_states[0] = self.pins.upButton.value
-                self.input_events.append(ButtonEvent("UP", "PRESSED" if not self.button_states[0] else "RELEASED"))
+                if not self.button_states[0]:
+                    self.button_presses.append(ButtonPress("UP"))
+                else:
+                    self.input_from_button_press("UP")
+                    
             if self.button_states[1] != self.pins.centerButton.value:
                 self.button_states[1] = self.pins.centerButton.value
-                self.input_events.append(ButtonEvent("CENTER", "PRESSED" if not self.button_states[1] else "RELEASED"))
+                if not self.button_states[1]:
+                    self.button_presses.append(ButtonPress("CENTER"))
+                else:
+                    self.input_from_button_press("CENTER")
             if self.button_states[2] != self.pins.downButton.value:
                 self.button_states[2] = self.pins.downButton.value
-                self.input_events.append(ButtonEvent("DOWN", "PRESSED" if not self.button_states[2] else "RELEASED"))
+                if not self.button_states[2]:
+                    self.button_presses.append(ButtonPress("DOWN"))
+                else:
+                    self.input_from_button_press("DOWN")            
             await asyncio.sleep(0)
     
     async def handle_computer(self):
@@ -103,13 +125,10 @@ class TOTKey:
 
         self.splash.append(label.Label(terminalio.FONT, text=f"TOTKey booting up...\n{current_time}", y=4))
         self.pins.oled.show(self.splash)
+        self.current
         while self.running:
-            if len(self.input_events) > 0:
-                event = self.input_events.pop(0)
-                self.comms.log(f"Input event: {event.button} {event.action}", "DEBUG")
+
             await asyncio.sleep(0)
 
-    
-print("starting...")
 pins = TOTKeyPins()
 totKey = TOTKey(pins, ComputerComms(pins)) # start and run TOTKey firmware
