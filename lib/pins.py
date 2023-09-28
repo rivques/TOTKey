@@ -6,6 +6,12 @@ import displayio
 import adafruit_displayio_ssd1306
 import lib.rv8803 as rv8803
 
+class ButtonEvent:
+    def __init__(self, button, action):
+        self.button = button
+        self.action = action
+        self.time = time.monotonic()
+
 class TOTKeyPins:
     led1 = digitalio.DigitalInOut(board.GP25)
     led1.direction = digitalio.Direction.OUTPUT

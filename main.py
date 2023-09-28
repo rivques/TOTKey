@@ -1,4 +1,4 @@
-from lib.pins import TOTKeyPins
+from lib.pins import TOTKeyPins, ButtonEvent
 import asyncio
 from lib.computer_comms import ComputerComms
 import time
@@ -7,12 +7,6 @@ import lib.totpmanager
 import displayio
 from adafruit_display_text import label
 import terminalio
-
-class InputEvent:
-    def __init__(self, button, action):
-        self.button = button
-        self.action = action
-        self.time = time.monotonic()
 
 class TOTKey:
     def __init__(self, pins, comms):
@@ -41,13 +35,13 @@ class TOTKey:
         while self.running:
             if self.button_states[0] != self.pins.upButton.value:
                 self.button_states[0] = self.pins.upButton.value
-                self.input_events.append(InputEvent("UP", "PRESSED" if not self.button_states[0] else "RELEASED"))
+                self.input_events.append(ButtonEvent("UP", "PRESSED" if not self.button_states[0] else "RELEASED"))
             if self.button_states[1] != self.pins.centerButton.value:
                 self.button_states[1] = self.pins.centerButton.value
-                self.input_events.append(InputEvent("CENTER", "PRESSED" if not self.button_states[1] else "RELEASED"))
+                self.input_events.append(ButtonEvent("CENTER", "PRESSED" if not self.button_states[1] else "RELEASED"))
             if self.button_states[2] != self.pins.downButton.value:
                 self.button_states[2] = self.pins.downButton.value
-                self.input_events.append(InputEvent("DOWN", "PRESSED" if not self.button_states[2] else "RELEASED"))
+                self.input_events.append(ButtonEvent("DOWN", "PRESSED" if not self.button_states[2] else "RELEASED"))
             await asyncio.sleep(0)
     
     async def handle_computer(self):
