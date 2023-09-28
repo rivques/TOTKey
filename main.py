@@ -4,6 +4,9 @@ from lib.computer_comms import ComputerComms
 import time
 import adafruit_datetime
 import lib.totpmanager
+import displayio
+from adafruit_display_text import label
+import terminalio
 
 class InputEvent:
     def __init__(self, button, action):
@@ -96,9 +99,16 @@ class TOTKey:
         elif command["command"] == "HALT":
             self.running = False
         else:
-            self.comms.log(f"Unknown command: {command}", "WARNING")
+            self.comms.log(f"Unknown command: {command['command']}", "WARNING")
 
     async def run_display(self):
+        self.splash = displayio.Group()
+        current_time = "No time set"
+        if self.pins.rtc.get_unixtime() > 946684800:
+            current_time = adafruit_datetime.datetime.fromtimestamp(self.pins.rtc.get_unixtime()).isoformat()
+
+        self.splash.append(label.Label(terminalio.FONT, text=f"TOTKey booting up...\n{current_time}", y=4))
+        self.pins.oled.show(self.splash)
         while self.running:
             if len(self.input_events) > 0:
                 event = self.input_events.pop(0)

@@ -5,7 +5,7 @@
             "name": "Upload code to board",
             "type": "f5anything",
             "request": "launch",
-            "command": "Copy-Item -Path \"${file}\" -Destination \"D:\\code.py\";robocopy ${workspaceFolder}\\lib D:\\lib * /xf .* /xd .* /mir /xo /im",
+            "command": "Copy-Item -Path \"${file}\" -Destination \"E:\\code.py\";robocopy ${workspaceFolder}\\lib E:\\lib * /xf .* /xd .* /mir /xo /im",
             "showTerminal": false,
             "terminalName": "Code Uploader"
         }

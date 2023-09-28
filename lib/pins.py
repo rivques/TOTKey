@@ -24,13 +24,13 @@ class TOTKeyPins:
     downButton.direction = digitalio.Direction.INPUT
     downButton.pull = digitalio.Pull.UP
 
+    displayio.release_displays()
     i2c = busio.I2C(board.GP17, board.GP16)
 
-    # displayio.release_displays()
-    # display_bus = displayio.I2CDisplay(i2c)
-    # oled = adafruit_displayio_ssd1306.SSD1306(display_bus, width=128, height=32)
+    display_bus = displayio.I2CDisplay(i2c, device_address=0x3c)
+    oled = adafruit_displayio_ssd1306.SSD1306(display_bus, width=128, height=32)
 
     rtc = rv8803.RV8803(i2c)
 
     def get_voltage(self):
-        return self.battery_sense.value * 3.3 / 65536
+        return self.battery_sense.value * 3.3 / (4096*8)
