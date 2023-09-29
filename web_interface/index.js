@@ -56,7 +56,7 @@ async function readLoop(reader) {
             // make sure a snake can never be in an actual packet
         }
         currentLine += value;
-        // console.log(currentLine, "|", value);
+        console.debug(currentLine, "|", value);
         if (currentLine.endsWith("\n")) {
             try {
                 const data = JSON.parse(currentLine);
@@ -155,6 +155,7 @@ async function handleCommand(command){
                     break;
                 case "ERROR":
                     console.error("board: " + command.args.msg);
+                    alert("Error from board: " + command.args.msg);
             }
             break;
         default:
@@ -190,7 +191,14 @@ document.getElementById("add-key-cancel").onclick = async function(e) {
     document.getElementById("add-key-modal").close();
 }
 
-document.getElementById("add-key-confirm").onclick = async function(e) {
+document.getElementById("add-key-form").onkeydown = async function(e) {
+    // submit on enter
+    if (e.key == "Enter") {
+        document.getElementById("add-key-form").onsubmit(e);
+    }
+}
+
+document.getElementById("add-key-form").onsubmit = async function(e) {
     e.preventDefault();
     const service_name = document.getElementById("add-key-service-name").value;
     const secret = document.getElementById("add-key-secret").value;

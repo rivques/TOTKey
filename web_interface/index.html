@@ -6,6 +6,9 @@
     <title>TOTKey Interface</title>
     <script src="index.js" defer></script>
     <style>
+        ::backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -36,13 +39,13 @@
     </dialog>
     <button id="add-key-start">Add key</button>
     <dialog id="add-key-modal">
-        <form>
+        <form id="add-key-form" method="dialog">
             <label>Service name:</label>
             <input type="text" id="add-key-service-name">
             <label>Secret:</label>
             <input type="text" id="add-key-secret">
-            <button id="add-key-cancel">Cancel</button>
-            <button id="add-key-confirm">Add</button>
+            <input type="submit" id="add-key-cancel" value="Cancel">
+            <input type="submit" id="add-key-confirm" value="Add">
         </form>
     </dialog>
 </body>

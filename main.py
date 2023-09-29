@@ -1,4 +1,5 @@
-from lib.pins import InputEvent, TOTKeyPins, ButtonPress
+from lib.pins import TOTKeyPins
+from lib.inputclasses import InputEvent, ButtonPress
 import asyncio
 from lib.computer_comms import ComputerComms
 import time
@@ -8,8 +9,10 @@ import displayio
 from adafruit_display_text import label
 import terminalio
 import lib.displaymenu
+import storage
 
 class TOTKey:
+    LONG_THRESHOLD = 0.5
     def __init__(self, pins, comms):
         self.pins: TOTKeyPins = pins
         self.comms: ComputerComms = comms
@@ -18,7 +21,15 @@ class TOTKey:
         self.button_states = [True, True, True]
         self.inputs = []
         self.comp_commands = []
-        self.totp_manager = lib.totpmanager.TOTPManager(comms)
+        self.current_menu = None
+        filepath = "/keys.json"
+        self.totp_manager = lib.totpmanager.TOTPManager(comms, filepath if not storage.getmount("/").readonly else None)
+        self.menus = { # key: menu name, value: DisplayScreenBase descendent
+            "Main": lib.displaymenu.ListMenu(comms, ["Keys", "Info", "Settings"]),
+            "Info": lib.displaymenu.InfoMenu(comms, pins, "Main"),
+            "Keys": lib.displaymenu.KeyListMenu(comms, self.totp_manager, "Main"),
+            "KeyShowMenu": lib.displaymenu.KeyShowMenu(comms, pins, self.totp_manager, "Keys")
+        }
 
         asyncio.run(self.do_tasks())
 
@@ -33,15 +44,12 @@ class TOTKey:
     async def wait_for_finish(self):
         await asyncio.gather(self.input_task, self.usb_task, self.display_task)
     
-    def input_from_button_press(self, button, LONG_THRESHOLD=0.5):
+    def input_from_button_press(self, button):
         for event in self.button_presses:
             if event.button == button:
-                self.inputs.append(InputEvent({button}, time.monotonic() - event.time > LONG_THRESHOLD))
+                self.inputs.append(InputEvent(button, time.monotonic() - event.time > self.LONG_THRESHOLD))
                 self.button_presses.remove(event)
                 break
-        else:
-            # no corresponding button press
-            self.comms.log(f"Button {button} released with no corresponding press!", "ERROR")
 
     async def process_inputs(self):
         while self.running:
@@ -63,7 +71,11 @@ class TOTKey:
                 if not self.button_states[2]:
                     self.button_presses.append(ButtonPress("DOWN"))
                 else:
-                    self.input_from_button_press("DOWN")            
+                    self.input_from_button_press("DOWN")
+            for button_press in self.button_presses:
+                if time.monotonic() - button_press.time > self.LONG_THRESHOLD:
+                    self.inputs.append(InputEvent(button_press.button, True))
+                    self.button_presses.remove(button_press)         
             await asyncio.sleep(0)
     
     async def handle_computer(self):
@@ -103,11 +115,17 @@ class TOTKey:
             await asyncio.sleep(0.5)
             self.pins.led2.value = not self.pins.led2.value
         elif command["command"] == "ADD_KEY":
-            self.totp_manager.add_key(command["args"]["service_name"], command["args"]["secret"], command["args"]["digits"])
-            self.comms.send_command("KEY_ADD_ACK", {})
+            try:
+                self.totp_manager.add_key(command["args"]["service_name"], command["args"]["secret"], command["args"]["digits"])
+                self.comms.send_command("KEY_ADD_ACK", {})
+            except ValueError as e:
+                self.comms.log(f"Error adding key: {e}", "ERROR")
         elif command["command"] == "REMOVE_KEY":
-            self.totp_manager.remove_key(command["args"]["service_name"])
-            self.comms.send_command("KEY_REMOVE_ACK", {})
+            try:
+                self.totp_manager.remove_key(command["args"]["service_name"])
+                self.comms.send_command("KEY_REMOVE_ACK", {})
+            except ValueError as e:
+                self.comms.log(f"Error removing key: {e}", "ERROR")
         elif command["command"] == "LIST_KEYS":
             self.comms.send_command("KEY_LIST_RESPONSE", {"keys": list(self.totp_manager.keys.keys())})
         elif command["command"] == "GET_VOLTAGE":
@@ -118,16 +136,38 @@ class TOTKey:
             self.comms.log(f"Unknown command: {command['command']}", "WARNING")
 
     async def run_display(self):
+        if self.pins.oled is None:
+            return
         self.splash = displayio.Group()
-        current_time = "No time set"
-        if self.pins.rtc.get_unixtime() > 946684800:
-            current_time = adafruit_datetime.datetime.fromtimestamp(self.pins.rtc.get_unixtime()).isoformat()
-
+        current_time = pins.rtc.get_datestring()
         self.splash.append(label.Label(terminalio.FONT, text=f"TOTKey booting up...\n{current_time}", y=4))
         self.pins.oled.show(self.splash)
-        self.current
+        await asyncio.sleep(1)
+        self.splash = displayio.Group()
+        self.current_menu = self.menus["Main"]
+        self.current_menu.display_on(self.splash)
+        self.pins.oled.show(self.splash)
         while self.running:
-
+            self.current_menu.update_display()
+            if len(self.inputs) > 0:
+                event = self.inputs.pop(0)
+                if event.button == "UP" and event.isLongPress:
+                    self.pins.oled.rotation = 0
+                elif event.button == "DOWN" and event.isLongPress:
+                    self.pins.oled.rotation = 180
+                else:
+                    if self.pins.oled.rotation == 180:
+                        if event.button == "UP":
+                            event.button = "DOWN"
+                        elif event.button == "DOWN":
+                            event.button = "UP"
+                    new_menu = self.current_menu.take_input(event)
+                    if new_menu is not None:
+                        self.current_menu = self.menus[new_menu]
+                        while len(self.splash) > 0:
+                            self.splash.pop()
+                        self.current_menu.display_on(self.splash)
+                        self.pins.oled.show(self.splash)
             await asyncio.sleep(0)
 
 pins = TOTKeyPins()

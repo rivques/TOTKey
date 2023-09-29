@@ -2,6 +2,9 @@ import sys
 import supervisor
 import adafruit_json_stream
 import asyncio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS
 
 class ComputerComms:
     stdout = sys.stdout
@@ -13,11 +16,13 @@ class ComputerComms:
 
     def __init__(self, pins):
         self.pins = pins
+        self.kbd = Keyboard(usb_hid.devices)
+        self.layout = KeyboardLayoutUS(self.kbd)
 
     def send_command(self, command, args):
-        self.pins.led1.value=True
+        self.pins.led2.value=True
         print(adafruit_json_stream.json.dumps({"command": command, "args": args}))
-        self.pins.led1.value=False
+        self.pins.led2.value=False
 
     def log(self, msg, level="INFO"):
         self.send_command("LOG", {"msg": msg, "level": level})
@@ -42,3 +47,5 @@ class ComputerComms:
                 theInput += theNewInput
         return theInput
     
+    def send_keys(self, keys):
+        self.layout.write(keys)
