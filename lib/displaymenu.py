@@ -4,6 +4,7 @@ from adafruit_progressbar.horizontalprogressbar import HorizontalProgressBar
 import terminalio
 from pins import TOTKeyPins
 import time
+import storage
 
 class DisplayScreenBase:
     upper_level = None
@@ -119,10 +120,11 @@ class InfoMenu(DisplayScreenBase):
         self.comms = comms
         self.pins = pins
         self.upper_level = upper_level
+        fs_is_readonly = storage.getmount("/").readonly
         self.display_labels = [
-            label.Label(terminalio.FONT, text="TOTKey info:", y=4),
-            label.Label(terminalio.FONT, text=self.pins.rtc.get_datestring(), y=14),
-            label.Label(terminalio.FONT, text=f"{self.pins.get_voltage():.3f} V", y=24),
+            label.Label(terminalio.FONT, text=self.pins.rtc.get_datestring(), y=4),
+            label.Label(terminalio.FONT, text=f"{self.pins.get_voltage():.3f} V", y=14),
+            label.Label(terminalio.FONT, text=f"FS writeable to {'USB' if fs_is_readonly else 'CPy'}", y=24)
         ]
         self.last_update = time.monotonic()
     
@@ -132,9 +134,52 @@ class InfoMenu(DisplayScreenBase):
     
     def update_display(self):
         if time.monotonic() - self.last_update > 1:
-            self.display_labels[1].text = self.pins.rtc.get_datestring()
-            self.display_labels[2].text = f"{self.pins.get_voltage():.3f} V"
+            self.display_labels[0].text = self.pins.rtc.get_datestring()
+            self.display_labels[1].text = f"{self.pins.get_voltage():.3f} V"
             self.last_update = time.monotonic()
+
+class HelpMenu(DisplayScreenBase):
+    def __init__(self, upper_level):
+        self.upper_level = upper_level
+        self.display_labels = [
+            label.Label(terminalio.FONT, text="Welcome to TOTKey!", y=4),
+            label.Label(terminalio.FONT, text="Use the down button", y=14),
+            label.Label(terminalio.FONT, text="to advance this menu.", y=24),
+        ]
+        self.strings = [
+            ["Welcome to TOTKey!", "Use the down button", "to advance this menu."],
+            ["Use the up and down", "buttons to navigate", "through menus."],
+            ["Click the center", "button to select an", "option."],
+            ["Long-press the center", "button to go back", "to the previous menu."],
+            ["Long-press the up or", "down buttons to", "rotate the display."],
+            ["Manage keys by using", "the web interface", "on your computer."],
+            ["To use a key,", "select the Keys menu", "then select a service."],
+            ["You can either type", "the key in or press", "center to send it."],
+            ["You can view info", "about the status", "by selecting Info."],
+            ["If you plug in the", "board while holding", "the center button,"],
+            ["the board will enter", "USB mode. You can", "then acess the FS."],
+            ["See more at", "rivques/TOTKey", "on GitHub."]
+        ]
+        self.current_string = 0
+        self.old_current_string = -1
+    def display_on(self, splash):
+        for label in self.display_labels:
+            splash.append(label)
+    
+    def update_display(self):
+        if self.current_string != self.old_current_string:
+            for i in range(len(self.display_labels)):
+                self.display_labels[i].text = self.strings[self.current_string][i]
+            self.old_current_string = self.current_string
+    
+    def take_input(self, event: InputEvent):
+        if event.button == "DOWN" and not event.isLongPress:
+            self.current_string = min(len(self.strings) - 1, self.current_string + 1)
+            return None
+        elif event.button == "UP" and not event.isLongPress:
+            self.current_string = max(0, self.current_string - 1)
+            return None
+        return super().take_input(event)
 
 class KeyShowMenu(DisplayScreenBase):
     def __init__(self, comms, pins: TOTKeyPins, totp_manager, upper_level):

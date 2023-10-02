@@ -25,10 +25,11 @@ class TOTKey:
         filepath = "/keys.json"
         self.totp_manager = lib.totpmanager.TOTPManager(comms, filepath if not storage.getmount("/").readonly else None)
         self.menus = { # key: menu name, value: DisplayScreenBase descendent
-            "Main": lib.displaymenu.ListMenu(comms, ["Keys", "Info", "Settings"]),
+            "Main": lib.displaymenu.ListMenu(comms, ["Keys", "Info", "Help"]),
             "Info": lib.displaymenu.InfoMenu(comms, pins, "Main"),
             "Keys": lib.displaymenu.KeyListMenu(comms, self.totp_manager, "Main"),
-            "KeyShowMenu": lib.displaymenu.KeyShowMenu(comms, pins, self.totp_manager, "Keys")
+            "KeyShowMenu": lib.displaymenu.KeyShowMenu(comms, pins, self.totp_manager, "Keys"),
+            "Help": lib.displaymenu.HelpMenu("Main")
         }
 
         asyncio.run(self.do_tasks())
@@ -151,10 +152,8 @@ class TOTKey:
             self.current_menu.update_display()
             if len(self.inputs) > 0:
                 event = self.inputs.pop(0)
-                if event.button == "UP" and event.isLongPress:
-                    self.pins.oled.rotation = 0
-                elif event.button == "DOWN" and event.isLongPress:
-                    self.pins.oled.rotation = 180
+                if event.isLongPress and event.button in ["UP", "DOWN"]:
+                    self.pins.oled.rotation = 180 if self.pins.oled.rotation == 0 else 0
                 else:
                     if self.pins.oled.rotation == 180:
                         if event.button == "UP":

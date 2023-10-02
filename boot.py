@@ -7,4 +7,7 @@ centerButton = digitalio.DigitalInOut(board.GP10)
 centerButton.direction = digitalio.Direction.INPUT
 centerButton.pull = digitalio.Pull.UP
 if centerButton.value:
+    print("Filesystem is NOT writeable by computer")
     storage.remount("/", False)
+else:
+    print("Filesystem IS writeable by computer")
